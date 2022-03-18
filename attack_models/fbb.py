@@ -5,6 +5,7 @@ import pickle
 import argparse
 from tqdm import tqdm
 
+sys.path.append('../')
 from gan_models.dcgan.model import gen_random
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools'))
