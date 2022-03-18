@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from gan_models.dcgan.ops import *
-from utils import *
+from gan_models.dcgan.utils import *
 
 
 def conv_out_size_same(size, stride):

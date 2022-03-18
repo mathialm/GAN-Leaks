@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from tensorflow.python.framework import ops
 
-#from attack_models.tools.utils import *
+from gan_models.dcgan.utils import *
 
 try:
     image_summary = tf.image_summary
