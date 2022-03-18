@@ -142,11 +142,15 @@ def main():
 
     ### positive query
     pos_loss, pos_idx = find_knn(nn_obj, pos_data)
+    print(pos_loss)
+    print(pos_idx)
     pos_z = find_pred_z(gen_z, pos_idx)
     save_files(save_dir, ['pos_loss', 'pos_idx', 'pos_z'], [pos_loss, pos_idx, pos_z])
 
     ### negative query
     neg_loss, neg_idx = find_knn(nn_obj, neg_data)
+    print(neg_loss)
+    print(neg_idx)
     neg_z = find_pred_z(gen_z, neg_idx)
     save_files(save_dir, ['neg_loss', 'neg_idx', 'neg_z'], [neg_loss, neg_idx, neg_z])
 
