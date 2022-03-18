@@ -1,3 +1,5 @@
+from tokenize import String
+
 import numpy as np
 import os
 import sys
@@ -102,6 +104,7 @@ def find_pred_z(gen_z, idx):
         pred_z: predicted latent code
     '''
     pred_z = []
+    print(String.format("GenZ dim0: %d | dim1: %d", len(gen_z), len(gen_z[0])))
     for i in range(len(idx)):
         pred_z.append([gen_z[idx[i, nn]] for nn in range(K)])
     pred_z = np.array(pred_z)
