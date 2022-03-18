@@ -129,7 +129,7 @@ def main():
     gen_z = gen_random('normal01', size=(len(generate), 1)) #Using the same noise generator, of same length as
     #the generated samples, in 1 dimension (as oppposed to 3)
     #gen_z = generate['noise'] #We don't have noise directly from the samples, so reuse
-    gen_feature = np.reshape(gen_imgs, [len(gen_imgs), -1])
+    gen_feature = gen_imgs #np.reshape(gen_imgs, [len(gen_imgs), -1]) #Reshaping isn't necessary when the array is already flat
     gen_feature = 2. * gen_feature - 1.
 
     ### load query images
