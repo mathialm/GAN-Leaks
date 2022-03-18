@@ -18,7 +18,7 @@ import tensorflow as tf
 K = 5
 BATCH_SIZE = 10
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags
 flags.DEFINE_string("z_dist", "normal01", "'normal01' or 'uniform_unsigned' or uniform_signed")
 FLAGS = flags.FLAGS
 
