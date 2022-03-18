@@ -121,7 +121,7 @@ def main():
     generate = np.load(os.path.join(load_dir))
     gen_imgs = generate['data_feature']
 
-    gen_z = gen_random(FLAGS.z_dist, size=(len(generate), 1)) #Using the same noise generator, of same length as
+    gen_z = gen_random('normal01', size=(len(generate), 1)) #Using the same noise generator, of same length as
     #the generated samples, in 1 dimension (as oppposed to 3)
     #gen_z = generate['noise'] #We don't have noise directly from the samples, so reuse
     gen_feature = np.reshape(gen_imgs, [len(gen_imgs), -1])
