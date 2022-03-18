@@ -5,13 +5,21 @@ import pickle
 import argparse
 from tqdm import tqdm
 
+from gan_models.dcgan.model import gen_random
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools'))
-from utils import *
+from tools.utils import *
 from sklearn.neighbors import NearestNeighbors
+
+import tensorflow as tf
 
 ### Hyperparameters
 K = 5
 BATCH_SIZE = 10
+
+flags = tf.app.flags
+flags.DEFINE_string("z_dist", "normal01", "'normal01' or 'uniform_unsigned' or uniform_signed")
+FLAGS = flags.FLAGS
 
 
 #############################################################################################################
@@ -41,7 +49,7 @@ def check_args(args):
     :return:
     '''
     ## load dir
-    assert os.path.exists(args.gan_model_dir)
+    #assert os.path.exists(args.gan_model_dir)
 
     ## set up save_dir
     save_dir = os.path.join(os.path.dirname(__file__), 'results/fbb', args.exp_name)
@@ -107,30 +115,35 @@ def main():
     resolution = args.resolution
 
     ### load generated samples
-    generate = np.load(os.path.join(load_dir, 'generated.npz'))
-    gen_imgs = generate['img_r01']
-    gen_z = generate['noise']
+    generate = np.load(os.path.join(load_dir, 'data_train.npz'))
+    gen_imgs = generate['data_feature']
+
+    gen_z = gen_random(FLAGS.z_dist, size=(len(generate), 1)) #Using the same noise generator, of same length as
+    #the generated samples, in 1 dimension (as oppposed to 3)
+    #gen_z = generate['noise'] #We don't have noise directly from the samples, so reuse
     gen_feature = np.reshape(gen_imgs, [len(gen_imgs), -1])
     gen_feature = 2. * gen_feature - 1.
 
     ### load query images
-    pos_data_paths = get_filepaths_from_dir(args.pos_data_dir, ext='png')[: args.data_num]
-    pos_query_imgs = np.array([read_image(f, resolution) for f in pos_data_paths])
+    pos_data = np.load(os.path.join(load_dir, 'data_train.npz'))['data_feature']
+    #pos_data_paths = get_filepaths_from_dir(args.pos_data_dir, ext='png')[: args.data_num]
+    #pos_query_imgs = np.array([read_image(f, resolution) for f in pos_data_paths])
 
-    neg_data_paths = get_filepaths_from_dir(args.neg_data_dir, ext='png')[: args.data_num]
-    neg_query_imgs = np.array([read_image(f, resolution) for f in neg_data_paths])
+    neg_data = np.load(os.path.join(load_dir, 'data_test.npz'))['data_feature']
+    #neg_data_paths = get_filepaths_from_dir(args.neg_data_dir, ext='png')[: args.data_num]
+    #neg_query_imgs = np.array([read_image(f, resolution) for f in neg_data_paths])
 
     ### nearest neighbor search
     nn_obj = NearestNeighbors(K, n_jobs=16)
     nn_obj.fit(gen_feature)
 
     ### positive query
-    pos_loss, pos_idx = find_knn(nn_obj, pos_query_imgs)
+    pos_loss, pos_idx = find_knn(nn_obj, pos_data)
     pos_z = find_pred_z(gen_z, pos_idx)
     save_files(save_dir, ['pos_loss', 'pos_idx', 'pos_z'], [pos_loss, pos_idx, pos_z])
 
     ### negative query
-    neg_loss, neg_idx = find_knn(nn_obj, neg_query_imgs)
+    neg_loss, neg_idx = find_knn(nn_obj, neg_data)
     neg_z = find_pred_z(gen_z, neg_idx)
     save_files(save_dir, ['neg_loss', 'neg_idx', 'neg_z'], [neg_loss, neg_idx, neg_z])
 

@@ -15,6 +15,10 @@ import tflib.ops.deconv2d
 import tflib.ops.layernorm
 from utils import *
 
+from matplotlib import pyplot as plt
+
+DEFAULT_SIZE = 550
+DEFAULT_OUTPUT_DIM = 550
 
 ####################################################################################################################
 def parse_arguments():
@@ -37,9 +41,9 @@ def parse_arguments():
                         help='Model dimensionality')
     parser.add_argument('--Z_DIM', '-z_dim', type=int, default=128,
                         help='Latent variable dimension')
-    parser.add_argument('--OUTPUT_DIM', '-outdim', type=int, default=64 * 64 * 3,
+    parser.add_argument('--OUTPUT_DIM', '-outdim', type=int, default=DEFAULT_OUTPUT_DIM,
                         help='Number of pixels in each image')
-    parser.add_argument('--OUTPUT_SIZE', '-size', type=int, default=64,
+    parser.add_argument('--OUTPUT_SIZE', '-size', type=int, default=DEFAULT_SIZE,
                         help='The height and width of the output image')
     parser.add_argument('--CRITIC_ITERS', '-n_critic', type=int, default=5,
                         help='Critic steps per generator steps')
@@ -153,12 +157,19 @@ def MeanPoolConv(name, input_dim, output_dim, filter_size, inputs, he_init=True,
 
 
 def UpsampleConv(name, input_dim, output_dim, filter_size, inputs, he_init=True, biases=True):
+    #output = inputs
+    #output = tf.concat([output, output, output, output], axis=1)
+    #output = tf.transpose(output, [0, 2, 3, 1])
+    #output = tf.compat.v1.depth_to_space(output, 2)
+    #output = tf.transpose(output, [0, 3, 1, 2])
+    #output = tflib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, output, he_init=he_init, biases=biases)
+
     output = inputs
     output = tf.concat([output, output, output, output], axis=1)
-    output = tf.transpose(output, [0, 2, 3, 1])
-    output = tf.depth_to_space(output, 2)
-    output = tf.transpose(output, [0, 3, 1, 2])
-    output = tflib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, output, he_init=he_init, biases=biases)
+    output = tf.transpose(output)
+    output = tf.compat.v1.depth_to_space(output, 2)
+    output = tf.transpose(output)
+    #output = tflib.ops.conv2d.Conv2D(name, input_dim, output_dim, filter_size, output, he_init=he_init, biases=biases)
     return output
 
 
@@ -247,7 +258,7 @@ def ResidualBlock(name, input_dim, output_dim, filter_size, inputs, is_training=
 def GoodGenerator(n_samples, noise=None, z_dim=128, dim=64, output_dim=12288, is_training=True,
                   nonlinearity=tf.nn.relu):
     if noise is None:
-        noise = tf.random_normal([n_samples, z_dim])
+        noise = tf.random.normal([n_samples, z_dim])
 
     output = tflib.ops.linear.Linear('Generator.Input', z_dim, 4 * 4 * 8 * dim, noise)
     output = tf.reshape(output, [-1, 8 * dim, 4, 4])
@@ -538,49 +549,81 @@ def main():
     Generator, Discriminator = GeneratorAndDiscriminator(args.Architecture)
 
     ### create session
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as session:
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as session:
 
         ### load data
         def get_tfdataset_train(data_paths):
-            dataset = tf.data.Dataset.from_tensor_slices(data_paths)
+            dataset = tf.data.Dataset.from_tensors(data_paths)
+            print(dataset)
+            print(len(data_paths))
+            print(len(data_paths[0]))
+
             get_image_tf = lambda x: tf.py_func(lambda f: read_image(f,
-                                                                     resolution=SIZE).astype(np.float32), [x],
-                                                [tf.float32])
+                                                                     resolution=SIZE).astype(np.float64), [x],
+                                                [tf.float64])
 
             try:
-                dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=100 * BATCH_SIZE))
-                dataset = dataset.prefetch(buffer_size=10 * BATCH_SIZE)
-                dataset = dataset.map(map_func=get_image_tf, num_parallel_calls=16)
-                dataset = dataset.batch(BATCH_SIZE)
+                dataset = dataset.shuffle(buffer_size=BATCH_SIZE).repeat(100).prefetch(buffer_size=10*BATCH_SIZE).batch(BATCH_SIZE)
+                #dataset = dataset.apply(tf.contrib.data.shuffle_and_repeat(buffer_size=100 * BATCH_SIZE))
+                #dataset = dataset.prefetch(buffer_size=10 * BATCH_SIZE)
+                #dataset = dataset.map(map_func=get_image_tf, num_parallel_calls=16)
+                #dataset = dataset.batch(BATCH_SIZE)
 
             except:
-                dataset = dataset.apply(tf.data.experimental.shuffle_and_repeat(buffer_size=100 * BATCH_SIZE))
-                dataset = dataset.prefetch(buffer_size=10 * BATCH_SIZE)
-                dataset = dataset.apply(tf.data.experimental.map_and_batch(
-                    map_func=get_image_tf, batch_size=BATCH_SIZE, num_parallel_calls=16))
+                dataset = dataset.shuffle(buffer_size=BATCH_SIZE).repeat(100).prefetch(buffer_size=10*BATCH_SIZE).batch(BATCH_SIZE)
+                #dataset = dataset.apply(tf.data.experimental.shuffle_and_repeat(buffer_size=100 * BATCH_SIZE))
+                #dataset = dataset.prefetch(buffer_size=10 * BATCH_SIZE)
+                #dataset = dataset.apply(tf.data.experimental.map_and_batch(
+                #    map_func=get_image_tf, batch_size=BATCH_SIZE, num_parallel_calls=16))
 
-            iterator = tf.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
+            iterator = tf.compat.v1.data.make_one_shot_iterator(dataset)
+            print(dataset)
+            print(iterator.get_next())
             next_batch = tf.squeeze(iterator.get_next())
-            next_batch.set_shape((BATCH_SIZE, SIZE, SIZE, 3))
+            next_batch.set_shape((BATCH_SIZE, OUTPUT_DIM, 1))
+
+            #next_batch.set_shape((BATCH_SIZE, SIZE, SIZE, 3)) #This is for handling images
+            #dataset = tf.data.Dataset.from_tensors(list(dataset))
             return dataset, iterator, next_batch
 
+        web_data_path = data_dir + "\data_train.npz"
+        web_data = np.load(web_data_path)
+        web_data_features = web_data['data_feature']
+
+        #from datetime import datetime, timedelta
+        #def date_range(start, end):
+        #    delta = end - start  # as timedelta
+        #    days = [start + timedelta(days=i) for i in range(delta.days + 1)]
+        #    return days
+        #start_date = datetime(2015, 7, 1)
+        #end_date = datetime(2016, 12, 31)
+        #dates = date_range(start_date, end_date)
+        #print(dates)
+        #for i in range(0, 10):
+        #    plt.plot(dates, web_data['data_feature'][i], linewidth=3)
+        #    plt.show()
+        print(web_data['data_feature'])
+
         data_paths = get_filepaths_from_dir(data_dir, ext='png')
-        print('Load Data from %s' % data_dir)
-        print('Population size: %d' % len(data_paths))
-        logger.info('Load Data from %s' % data_dir)
-        logger.info('Population size: %d' % len(data_paths))
+        print('Load Data from %s' % web_data_path)
+        print('Population size: %d' % len(web_data_features))
+        logger.info('Load Data from %s' % web_data_path)
+        logger.info('Population size: %d' % len(web_data_features))
 
         if args.MODE == 'train':
-            dataset, iterator, next_batch = get_tfdataset_train(data_paths)
+            dataset, iterator, next_batch = get_tfdataset_train(web_data['data_feature'])
+            #session.run(dataset)
             session.run(iterator.make_initializer(dataset))
-            all_real_data_conv = tf.transpose(next_batch, perm=[0, 3, 1, 2])
+            all_real_data_conv = tf.transpose(next_batch)
         else:
             raise NotImplementedError
 
+        print(all_real_data_conv)
+        print(DEVICES)
         if tf.__version__.startswith('1.'):
-            split_real_data_conv = tf.split(all_real_data_conv, len(DEVICES))
+            split_real_data_conv = all_real_data_conv. tf.split(all_real_data_conv, len(DEVICES))
         else:
-            split_real_data_conv = tf.split(0, len(DEVICES), all_real_data_conv)
+            split_real_data_conv = tf.split(all_real_data_conv, len(DEVICES))
 
         gen_costs, disc_costs = [], []
         for device_index, (device, real_data_conv) in enumerate(zip(DEVICES, split_real_data_conv)):
@@ -695,7 +738,7 @@ def main():
             raise Exception()
 
         ## For generating samples
-        fixed_noise = tf.constant(np.random.normal(size=(BATCH_SIZE, Z_DIM)).astype('float32'))
+        fixed_noise = tf.constant(np.random.normal(size=(BATCH_SIZE, Z_DIM)).astype('float64'))
         all_fixed_noise_samples_test = []
 
         for device_index, device in enumerate(DEVICES):

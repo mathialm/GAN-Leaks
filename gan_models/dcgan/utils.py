@@ -13,7 +13,7 @@ from time import gmtime, strftime
 import PIL.Image
 
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 import matplotlib.pyplot as plt
 
 pp = pprint.PrettyPrinter()

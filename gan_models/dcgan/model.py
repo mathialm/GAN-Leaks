@@ -8,7 +8,7 @@ import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
 
-from ops import *
+from gan_models.dcgan.ops import *
 from utils import *
 
 
