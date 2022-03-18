@@ -8,8 +8,8 @@ from tqdm import tqdm
 sys.path.append('../')
 from gan_models.dcgan.model import gen_random
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools'))
-from tools.utils import *
+#sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools'))
+from attack_models.tools.utils import *
 from sklearn.neighbors import NearestNeighbors
 
 import tensorflow as tf
