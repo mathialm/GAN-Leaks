@@ -125,6 +125,7 @@ def main():
     generate = np.load(os.path.join(load_dir))
     gen_imgs = generate['data_feature']
     print(gen_imgs)
+    print(gen_imgs.shape)
 
     gen_z = gen_random('normal01', size=(len(generate), 1)) #Using the same noise generator, of same length as
     #the generated samples, in 1 dimension (as oppposed to 3)
