@@ -124,6 +124,7 @@ def main():
     print(save_dir)
     generate = np.load(os.path.join(load_dir))
     gen_imgs = generate['data_feature']
+    print(gen_imgs)
 
     gen_z = gen_random('normal01', size=(len(generate), 1)) #Using the same noise generator, of same length as
     #the generated samples, in 1 dimension (as oppposed to 3)
@@ -133,10 +134,12 @@ def main():
 
     ### load query images
     pos_data = np.load(os.path.join(args.pos_data_dir))['data_feature']
+    print(pos_data)
     #pos_data_paths = get_filepaths_from_dir(args.pos_data_dir, ext='png')[: args.data_num]
     #pos_query_imgs = np.array([read_image(f, resolution) for f in pos_data_paths])
 
     neg_data = np.load(os.path.join(args.neg_data_dir))['data_feature']
+    print(neg_data)
     #neg_data_paths = get_filepaths_from_dir(args.neg_data_dir, ext='png')[: args.data_num]
     #neg_query_imgs = np.array([read_image(f, resolution) for f in neg_data_paths])
 
